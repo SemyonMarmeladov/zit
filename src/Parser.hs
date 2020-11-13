@@ -1,13 +1,12 @@
 module Parser
   (
-    eval,
     readExpr,
   )
 where
 
 import Control.Monad
 import Text.ParserCombinators.Parsec hiding (spaces)
-
+import SyntaxTree
 -- Parser combinators  ++ tree
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -15,12 +14,6 @@ symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
 spaces :: Parser ()
 spaces = skipMany1 space
 
-data LispVal = Atom String
-             | List [LispVal]
-             | DottedList [LispVal] LispVal
-             | Number Integer
-             | String String
-             | Bool Bool
 
 
 -- TODO  parse number with  do notation and monad chaining ...
@@ -46,6 +39,7 @@ parseDottedList = do
 
 parseQuoted :: Parser LispVal
 parseQuoted = do
+
     char '\''
     x <- parseExpr
     return $ List [Atom "quote", x]
@@ -87,13 +81,8 @@ parseExpr = parseAtom
                 char ')'
                 return x
 
-eval :: LispVal -> LispVal
-eval val@(String _) = val
-eval val@(Number _) = val
-eval val@(Bool _) = val
-eval (List [Atom "quote", val]) = val
 
 readExpr :: String -> LispVal
-readExpr input = case parse parseExpr "lisp" input of
+readExpr input = case parse (spaces >> parseExpr) "lisp" input of
     Left err -> String $ "No match: " ++ show err
     Right val -> val
